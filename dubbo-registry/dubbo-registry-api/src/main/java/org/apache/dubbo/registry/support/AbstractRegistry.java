@@ -65,18 +65,23 @@ import static org.apache.dubbo.registry.Constants.REGISTRY_FILESAVE_SYNC_KEY;
  */
 public abstract class AbstractRegistry implements Registry {
 
+	//url地址分离器，用在文件缓存，服务提供者url
     // URL address separator, used in file cache, service provider URL separation
     private static final char URL_SEPARATOR = ' ';
+    //url切割正则表达式
     // URL address separated regular expression for parsing the service provider URL list in the file cache
     private static final String URL_SPLIT = "\\s+";
+    //将属性保存到本地缓存文件的最大重试次数
     // Max times to retry to save properties to local cache file
     private static final int MAX_RETRY_TIMES_SAVE_PROPERTIES = 3;
     // Log output
     protected final Logger logger = LoggerFactory.getLogger(getClass());
+    //本地磁盘缓存，其中特殊的key value.registry记录注册表中心列表，其他是通知的服务提供商列表
     // Local disk cache, where the special key value.registries records the list of registry centers, and the others are the list of notified service providers
     private final Properties properties = new Properties();
     // File cache timing writing
     private final ExecutorService registryCacheExecutor = Executors.newFixedThreadPool(1, new NamedThreadFactory("DubboSaveRegistryCache", true));
+    //是否同步保存到文件
     // Is it synchronized to save the file
     private final boolean syncSaveFile;
     private final AtomicLong lastCacheChanged = new AtomicLong();
@@ -84,10 +89,21 @@ public abstract class AbstractRegistry implements Registry {
     private final Set<URL> registered = new ConcurrentHashSet<>();
     private final ConcurrentMap<URL, Set<NotifyListener>> subscribed = new ConcurrentHashMap<>();
     private final ConcurrentMap<URL, Map<String, List<URL>>> notified = new ConcurrentHashMap<>();
+    //注册url
     private URL registryUrl;
     // Local disk cache file
+    //本地缓存文件
     private File file;
 
+    /**
+     *	注册构造器 入参： 注册的url并配置相关的信息
+     *	从url中读取是否同步保存到本地文件中 url中参数名为：save.file  类型为boolean
+     * 	从url获取文件名称，应用名称构建成本地文件存储的文件名称，当本地不存在此文件的时候进行文件初始化创建
+     * 	并根据文件中的信息读取到properties中
+     *  最后调用notify方法
+     *  
+     * @param url
+     */
     public AbstractRegistry(URL url) {
         setUrl(url);
         // Start file save timer
